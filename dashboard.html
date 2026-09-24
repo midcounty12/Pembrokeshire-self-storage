@@ -37,6 +37,6 @@ async function initAuth(){
  if(q.get("reset")==="1"||code||h.get("type")==="recovery"){document.getElementById("signInBox").style.display="none";document.getElementById("resetBox").style.display="block";login.style.display="block";app.style.display="none";return}
  await show(data?.session||null)
 }
-db.auth.onAuthStateChange(async(e,s)=>{if(e==="PASSWORD_RECOVERY"){document.getElementById("signInBox").style.display="none";document.getElementById("resetBox").style.display="block";login.style.display="block";app.style.display="none";return}if(e!=="INITIAL_SESSION")await show(s)});
+db.auth.onAuthStateChange((e,s)=>{setTimeout(()=>{if(e==="PASSWORD_RECOVERY"){document.getElementById("signInBox").style.display="none";document.getElementById("resetBox").style.display="block";login.style.display="block";app.style.display="none";return}if(e!=="INITIAL_SESSION")show(s).catch(()=>{})},0)});
 initAuth().catch(e=>msg.textContent="Session error: "+e.message);
 </script></body></html>

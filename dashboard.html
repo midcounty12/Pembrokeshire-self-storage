@@ -67,7 +67,7 @@ async function resetPassword(){
  if(!em){msg.textContent="Enter your email address first.";return}
  msg.textContent="Requesting password reset…";
  try{
-  const {error}=await db.auth.resetPasswordForEmail(em,{redirectTo:"https://midcounty12.github.io/Pembrokeshire-self-storage/dashboard.html?reset=1"});
+  const {error}=await db.auth.resetPasswordForEmail(em,{redirectTo:"https://midcounty12.github.io/Pembrokeshire-self-storage/"});
   msg.textContent=error?error.message:"New password reset email sent. Open the most recent email.";
  }catch(e){msg.textContent="Unable to send reset email: "+(e?.message||String(e))}
 }

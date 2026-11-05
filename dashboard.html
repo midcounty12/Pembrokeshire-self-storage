@@ -7,7 +7,15 @@
 <header><img src="logo.jpeg" alt="Pembrokeshire Self Storage"><b>PRIVATE MANAGEMENT DASHBOARD</b></header>
 <main class="wrap">
 <section id="login" class="card" style="max-width:520px;margin:40px auto"><div id="resetBox" style="display:none"><h1>Choose a new password</h1><p>Enter a new password for your dashboard.</p><div class="field"><input id="newPassword" type="password" placeholder="New password (8+ characters)"></div><div class="field"><input id="confirmPassword" type="password" placeholder="Confirm new password"></div><button class="btn" type="button" onclick="saveNewPassword()">Save new password</button><p id="resetMsg" class="error"></p><p><button type="button" onclick="requestNewResetLink()" style="border:0;background:none;color:#062942;text-decoration:underline;cursor:pointer;font-weight:700">Request a fresh reset email</button></p></div><div id="signInBox"><h1>Staff sign in</h1><p>This area is private. Use an authorised staff account.</p><div class="field"><input id="email" type="email" placeholder="Email" value="midcounty12@gmail.com" autocomplete="username"></div><div class="field"><input id="password" type="password" placeholder="Password" autocomplete="current-password"></div><button class="btn" id="signIn" type="button" onclick="doSignIn()">Sign in</button><p><button type="button" onclick="createAdmin()" style="border:0;background:none;padding:6px 0;color:#062942;text-decoration:underline;font-weight:700;cursor:pointer">First time? Create owner login</button></p><p><button type="button" onclick="resetPassword()" style="border:0;background:none;padding:6px 0;color:#062942;text-decoration:underline;font-weight:700;cursor:pointer">Forgot password?</button></p><p id="loginMsg" class="error"></p></div></section>
-<section id="app" style="display:none"><div style="display:flex;justify-content:space-between;align-items:center;gap:12px"><div><h1>Rental portfolio</h1><p class="muted">Private view — never shown on the public self-storage website.</p></div><button class="btn btn2" id="signOut">Sign out</button></div>
+<section id="app" style="display:none"><div style="display:flex;justify-content:space-between;align-items:center;gap:12px"><div><h1>Rental portfolio</h1><p class="muted">Private view — never shown on the public self-storage website.</p></div><div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end"><button class="btn" type="button" onclick="toggleChangePassword()">Change password</button><button class="btn btn2" id="signOut">Sign out</button></div></div>
+<div id="changePasswordPanel" class="card" style="display:none;max-width:560px;margin-top:14px">
+<h2>Change your password</h2>
+<p class="muted">You're already signed in. Choose a new password for this dashboard (not your GitHub account).</p>
+<div class="field"><label for="accountNewPassword">New password</label><input type="password" id="accountNewPassword" autocomplete="new-password" placeholder="New password, preferably 12+ characters"></div>
+<div class="field"><label for="accountConfirmPassword">Confirm new password</label><input type="password" id="accountConfirmPassword" autocomplete="new-password" placeholder="Confirm new password"></div>
+<button class="btn" type="button" id="accountSavePassword" onclick="changePasswordFromDashboard()">Save new password</button>
+<p id="accountPasswordMsg" role="status" aria-live="polite"></p>
+</div>
 <div class="stats"><div class="stat"><small>Total assets</small><strong id="total">—</strong></div><div class="stat"><small>Occupied</small><strong id="occupied">—</strong></div><div class="stat"><small>Available</small><strong id="available">—</strong></div><div class="stat"><small>Bank feeds connected</small><strong id="banks">—</strong></div></div>
 <div class="grid" style="margin-top:18px"><div class="card"><h2>Open Banking</h2><p><button class="btn" id="connectBank">Connect a bank</button></p><small class="muted">Connect your real bank securely through TrueLayer. You can repeat this for each account.</small><div id="bankList">Loading…</div></div><div class="card"><h2>Payment matching</h2><p>Incoming bank transactions will be matched to expected rent. Unclear payments will go to <b>Needs matching</b> instead of being guessed.</p><p><b>Needs matching:</b> <span id="needsMatching">0</span></p></div></div>
 <div class="card"><h2>Assets</h2><div class="tablewrap"><table><thead><tr><th>Asset</th><th>Group</th><th>Status</th><th>Rent</th><th>Expected bank</th><th>Paid until</th><th>Public?</th></tr></thead><tbody id="assetRows"></tbody></table></div></div>
@@ -37,6 +45,30 @@ async function isStaff(user){if(!user)return false;const {data}=await db.from("s
 async function bootstrapAdmin(session){if(!session||!session.user||String(session.user.email||"").toLowerCase()!=="midcounty12@gmail.com")return false;try{const res=await fetch("https://vxurmlmmrlclfydiobgm.supabase.co/functions/v1/bootstrap-admin",{method:"POST",headers:{Authorization:"Bearer "+session.access_token,apikey:"sb_publishable_nYgRvuOk0nK1oQfLIaksqA_n0bfFMMg"}});return res.ok}catch(_){return false}}
 async function show(session){if(session){if(!(await isStaff(session.user)))await bootstrapAdmin(session);if(await isStaff(session.user)){msg.textContent="";login.style.display="none";app.style.display="block";await loadDashboard();return}login.style.display="block";app.style.display="none";msg.textContent="Signed in, but staff access could not be loaded. The database may still be offline, or owner permissions need setting up.";return}login.style.display="block";app.style.display="none"}
 async function doSignIn(){msg.textContent="Signing in…";try{const em=document.getElementById("email").value.trim(),pw=document.getElementById("password").value;if(!em||!pw){msg.textContent="Enter your email and password.";return}const {data,error}=await db.auth.signInWithPassword({email:em,password:pw});if(error){msg.textContent=error.message;return}if(!data.session){msg.textContent="No login session was created.";return}msg.textContent="Signed in. Authorising dashboard…";if(em.toLowerCase()==="midcounty12@gmail.com"){try{await fetch("https://vxurmlmmrlclfydiobgm.supabase.co/functions/v1/bootstrap-admin",{method:"POST",headers:{Authorization:"Bearer "+data.session.access_token,apikey:"sb_publishable_nYgRvuOk0nK1oQfLIaksqA_n0bfFMMg"}})}catch(_){}}await show(data.session)}catch(e){msg.textContent="Login error: "+(e?.message||String(e))}}
+
+function toggleChangePassword(){
+ const panel=document.getElementById("changePasswordPanel");
+ panel.style.display=panel.style.display==="none"?"block":"none";
+ document.getElementById("accountPasswordMsg").textContent="";
+}
+async function changePasswordFromDashboard(){
+ const m=document.getElementById("accountPasswordMsg"),p=document.getElementById("accountNewPassword"),c=document.getElementById("accountConfirmPassword"),btn=document.getElementById("accountSavePassword");
+ if(p.value.length<8){m.textContent="Use a password of at least 8 characters. A long, unique password is best.";return}
+ if(p.value!==c.value){m.textContent="Passwords do not match.";return}
+ btn.disabled=true;m.textContent="Saving password…";
+ try{
+  const {data,error:sessionError}=await db.auth.getSession();
+  if(sessionError)throw sessionError;
+  if(!data?.session)throw new Error("Your session has expired. Sign in again or request a reset link.");
+  const {error}=await db.auth.updateUser({password:p.value});
+  if(error)throw error;
+  p.value="";c.value="";
+  m.textContent="Password updated successfully. Use your new password next time you sign in.";
+ }catch(e){
+  m.textContent="Password not changed: "+(e?.message||String(e));
+ }finally{btn.disabled=false}
+}
+
 async function saveNewPassword(){
  const m=document.getElementById("resetMsg"),p=document.getElementById("newPassword").value,c=document.getElementById("confirmPassword").value;
  if(p.length<8){m.textContent="Use at least 8 characters.";return}

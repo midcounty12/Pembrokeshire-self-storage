@@ -9,7 +9,7 @@
 <script>
 (function(){
  const q=new URLSearchParams(location.search),h=new URLSearchParams(location.hash.replace(/^#/,""));
- if(!(q.get("reset")==="1"||q.has("code")||q.has("token_hash")||h.get("type")==="recovery"||h.has("access_token")||h.has("error_code")||q.has("error")))return;
+ if(!(q.get("reset")==="1"||q.get("type")==="recovery"||q.has("code")||q.has("token_hash")||h.get("type")==="recovery"||h.has("access_token")||h.has("error_code")||q.has("error")))return;
  const target=new URL("/Pembrokeshire-self-storage/dashboard.html",location.origin);
  target.searchParams.set("reset","1");
  for(const name of ["code","token_hash","type","error","error_description"]){
@@ -50,6 +50,14 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js"></script>
 <script>
 const db = window.supabase?.createClient ? window.supabase.createClient("https://vxurmlmmrlclfydiobgm.supabase.co","sb_publishable_nYgRvuOk0nK1oQfLIaksqA_n0bfFMMg") : null;
+// Recovery can be handled by Supabase Auth after its script initialises.
+if(db){
+ db.auth.onAuthStateChange((event)=>{
+  if(event==="PASSWORD_RECOVERY"){
+   setTimeout(()=>location.replace("dashboard.html?reset=1"),0);
+  }
+ });
+}
 var chosen = "";
 function openModal(id) { document.getElementById(id).style.display = "block"; }
 function closeModal(id) { document.getElementById(id).style.display = "none"; }
